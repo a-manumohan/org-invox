@@ -2,7 +2,8 @@
 
 ;; Copyright (C) 2026 Manu Mohan
 
-;; Author: Manu Mohan
+;; Author: Manu Mohan <me@manumohan.net>
+;; Maintainer: Manu Mohan <me@manumohan.net>
 ;; URL: https://github.com/a-manumohan/org-invox
 ;; Version: 0.1.0
 ;; Package-Requires: ((emacs "27.1") (org "9.0"))
