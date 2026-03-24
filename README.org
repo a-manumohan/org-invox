@@ -44,7 +44,7 @@ Clone the repository and add it to your load path:
 In =packages.el=:
 
 #+begin_src emacs-lisp
-(package! org-invox :recipe (:host github :repo "manu-r-n/org-invox"))
+(package! org-invox :recipe (:host github :repo "a-manumohan/org-invox"))
 #+end_src
 
 In =config.el=:
@@ -60,7 +60,7 @@ In =config.el=:
 
 #+begin_src emacs-lisp
 (use-package org-invox
-  :straight (:host github :repo "manu-r-n/org-invox")
+  :straight (:host github :repo "a-manumohan/org-invox")
   :after org
   :config
   (require 'org-invox-export))
@@ -168,30 +168,23 @@ Examples:
 Set =org-invox-latex-template-file= to point to your own =.tex= template.
 The following placeholders are available:
 
-| Placeholder          | Replaced with             |
-|----------------------+---------------------------|
-| =<<INVOICE_NUMBER>>= | Invoice number            |
-| =<<INVOICE_DATE>>=   | Invoice date              |
-| =<<DUE_DATE>>=       | Due date                  |
-| =<<INVOICE_PERIOD>>= | Billing period            |
-| =<<FROM_NAME>>=      | Your name                 |
-| =<<FROM_COMPANY>>=   | Your company              |
-| =<<FROM_ADDRESS>>=   | Your address              |
-| =<<FROM_EMAIL>>=     | Your email                |
-| =<<FROM_PHONE>>=     | Your phone                |
-| =<<TO_CONTACT>>=     | Client contact name       |
-| =<<TO_COMPANY>>=     | Client company            |
-| =<<TO_ADDRESS>>=     | Client address            |
-| =<<TO_EMAIL>>=       | Client email              |
-| =<<LINE_ITEMS>>=     | Formatted line items      |
-| =<<SUBTOTAL>>=       | Subtotal amount           |
-| =<<TAX_LABEL>>=      | Tax label (e.g., HST)     |
-| =<<TAX_RATE>>=       | Tax rate (e.g., 13.0)     |
-| =<<TAX_AMOUNT>>=     | Tax amount                |
-| =<<TOTAL>>=          | Total amount              |
-| =<<CURRENCY>>=       | Currency code             |
-| =<<CURRENCY_SYM>>=   | Currency symbol           |
-| =<<PAYMENT_TERMS>>=  | Payment terms             |
+| Placeholder          | Replaced with                                      |
+|----------------------+----------------------------------------------------|
+| =<<INVOICE_NUMBER>>= | Invoice number                                     |
+| =<<INVOICE_DATE>>=   | Invoice date                                       |
+| =<<DUE_DATE>>=       | Due date                                           |
+| =<<INVOICE_PERIOD>>= | Billing period                                     |
+| =<<FROM_BLOCK>>=     | Full sender block (name, company, address, etc.)   |
+| =<<TO_BLOCK>>=       | Full recipient block (name, company, address, etc.)|
+| =<<LINE_ITEMS>>=     | Formatted line items                               |
+| =<<SUBTOTAL>>=       | Subtotal amount                                    |
+| =<<TAX_LABEL>>=      | Tax label (e.g., HST)                              |
+| =<<TAX_RATE>>=       | Tax rate (e.g., 13.0)                              |
+| =<<TAX_AMOUNT>>=     | Tax amount                                         |
+| =<<TOTAL>>=          | Total amount                                       |
+| =<<CURRENCY>>=       | Currency code                                      |
+| =<<CURRENCY_SYM>>=   | Currency symbol                                    |
+| =<<PAYMENT_TERMS>>=  | Payment terms                                      |
 
 ** Typical Workflow (Biweekly Contractor)
 
