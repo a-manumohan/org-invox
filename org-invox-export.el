@@ -1,8 +1,8 @@
 ;;; org-invox-export.el --- PDF export for org-invox -*- lexical-binding: t -*-
 
-;; Copyright (C) 2026 Manu Narayanan
+;; Copyright (C) 2026 Manu Mohan
 
-;; Author: Manu Narayanan
+;; Author: Manu Mohan
 ;; URL: https://github.com/manu-r-n/org-invox
 ;; Version: 0.1.0
 ;; Package-Requires: ((emacs "27.1") (org "9.0"))
@@ -50,18 +50,42 @@
     (dolist (key '("INVOICE_NUMBER" "INVOICE_DATE" "DUE_DATE" "STATUS"))
       (let ((val (org-invox-export--read-field key)))
         (when val (setq props (plist-put props (intern (concat ":" (downcase key))) val)))))
-    ;; From details
-    (dolist (field '("Name" "Company" "Address" "Email" "Phone"))
-      (let ((val (org-invox-export--read-table-field "From" field)))
-        (when val (setq props (plist-put props
-                                        (intern (concat ":from-" (downcase field)))
-                                        val)))))
-    ;; To details
-    (dolist (field '("Name" "Company" "Address" "Email" "Contact"))
-      (let ((val (org-invox-export--read-table-field "To" field)))
-        (when val (setq props (plist-put props
-                                        (intern (concat ":to-" (downcase field)))
-                                        val)))))
+    ;; From details (from org properties)
+    (save-excursion
+      (goto-char (point-min))
+      (when (re-search-forward "^\\*\\* From" nil t)
+        (dolist (pair '(("FROM_NAME" . :from-name)
+                        ("FROM_COMPANY" . :from-company)
+                        ("FROM_EMAIL" . :from-email)
+                        ("FROM_PHONE" . :from-phone)))
+          (let ((val (org-entry-get (point) (car pair))))
+            (when val (setq props (plist-put props (cdr pair) val)))))
+        ;; Read address from example block
+        (when (re-search-forward "#\\+begin_example" nil t)
+          (forward-line 1)
+          (let ((start (point)))
+            (when (re-search-forward "#\\+end_example" nil t)
+              (forward-line 0)
+              (setq props (plist-put props :from-address
+                                    (string-trim (buffer-substring-no-properties start (point))))))))))
+    ;; To details (from org properties)
+    (save-excursion
+      (goto-char (point-min))
+      (when (re-search-forward "^\\*\\* To" nil t)
+        (dolist (pair '(("TO_NAME" . :to-name)
+                        ("TO_COMPANY" . :to-company)
+                        ("TO_EMAIL" . :to-email)
+                        ("TO_CONTACT" . :to-contact)))
+          (let ((val (org-entry-get (point) (car pair))))
+            (when val (setq props (plist-put props (cdr pair) val)))))
+        ;; Read address from example block
+        (when (re-search-forward "#\\+begin_example" nil t)
+          (forward-line 1)
+          (let ((start (point)))
+            (when (re-search-forward "#\\+end_example" nil t)
+              (forward-line 0)
+              (setq props (plist-put props :to-address
+                                    (string-trim (buffer-substring-no-properties start (point))))))))))
     ;; Line items - parse from the table
     (save-excursion
       (goto-char (point-min))
@@ -192,15 +216,16 @@
 \\vspace{1.5em}
 
 % From / To
-\\begin{tabularx}{\\textwidth}{@{}XX@{}}
-\\textbf{\\color{primary}FROM} & \\textbf{\\color{primary}BILL TO} \\\\
-\\midrule
-<<FROM_NAME>> & <<TO_CONTACT>> \\\\
-<<FROM_COMPANY>> & <<TO_COMPANY>> \\\\
-<<FROM_ADDRESS>> & <<TO_ADDRESS>> \\\\
-<<FROM_EMAIL>> & <<TO_EMAIL>> \\\\
-<<FROM_PHONE>> & \\\\
-\\end{tabularx}
+\\noindent
+\\begin{minipage}[t]{0.48\\textwidth}
+\\textbf{\\color{primary}FROM}\\\\[0.5em]
+<<FROM_BLOCK>>
+\\end{minipage}
+\\hfill
+\\begin{minipage}[t]{0.48\\textwidth}
+\\textbf{\\color{primary}BILL TO}\\\\[0.5em]
+<<TO_BLOCK>>
+\\end{minipage}
 
 \\vspace{2em}
 
@@ -250,15 +275,6 @@
                        ("<<INVOICE_DATE>>" . :invoice_date)
                        ("<<DUE_DATE>>" . :due_date)
                        ("<<INVOICE_PERIOD>>" . :invoice-period)
-                       ("<<FROM_NAME>>" . :from-name)
-                       ("<<FROM_COMPANY>>" . :from-company)
-                       ("<<FROM_ADDRESS>>" . :from-address)
-                       ("<<FROM_EMAIL>>" . :from-email)
-                       ("<<FROM_PHONE>>" . :from-phone)
-                       ("<<TO_CONTACT>>" . :to-contact)
-                       ("<<TO_COMPANY>>" . :to-company)
-                       ("<<TO_ADDRESS>>" . :to-address)
-                       ("<<TO_EMAIL>>" . :to-email)
                        ("<<SUBTOTAL>>" . :subtotal)
                        ("<<TAX_LABEL>>" . :tax-label)
                        ("<<TAX_RATE>>" . :tax-rate)
@@ -271,6 +287,42 @@
                       (regexp-quote (car mapping))
                       (funcall esc val)
                       result t t))))
+    ;; From block: the example block already contains the full formatted address
+    ;; (name, company, address, email, phone) written by org-invox-create.
+    ;; Use it directly to avoid duplicating fields that are also in properties.
+    (let* ((addr (or (plist-get props :from-address) ""))
+           (addr-lines (split-string addr "\n" t "[ \t]+"))
+           (from-block
+            (if addr-lines
+                (mapconcat esc addr-lines "\\\\\\\\\n")
+              ;; Fallback when no example block is present
+              (mapconcat esc
+                         (cl-remove-if #'string-empty-p
+                                       (list (or (plist-get props :from-name) "")
+                                             (or (plist-get props :from-company) "")
+                                             (or (plist-get props :from-email) "")
+                                             (or (plist-get props :from-phone) "")))
+                         "\\\\\\\\\n"))))
+      (setq result (replace-regexp-in-string
+                    (regexp-quote "<<FROM_BLOCK>>")
+                    from-block result t t)))
+    ;; To block: same approach — use the example block directly.
+    (let* ((to-addr (or (plist-get props :to-address) ""))
+           (to-addr-lines (split-string to-addr "\n" t "[ \t]+"))
+           (to-block
+            (if to-addr-lines
+                (mapconcat esc to-addr-lines "\\\\\\\\\n")
+              ;; Fallback when no example block is present
+              (mapconcat esc
+                         (cl-remove-if #'string-empty-p
+                                       (list (or (plist-get props :to-contact)
+                                                 (plist-get props :to-name) "")
+                                             (or (plist-get props :to-company) "")
+                                             (or (plist-get props :to-email) "")))
+                         "\\\\\\\\\n"))))
+      (setq result (replace-regexp-in-string
+                    (regexp-quote "<<TO_BLOCK>>")
+                    to-block result t t)))
     ;; Currency symbol (don't escape the $)
     (let ((sym (or (plist-get props :currency-symbol)
                    org-invox-default-currency-symbol)))

@@ -1,5 +1,5 @@
 #+TITLE: org-invox
-#+AUTHOR: Manu Narayanan
+#+AUTHOR: Manu Mohan
 #+OPTIONS: toc:3 num:nil
 
 * org-invox

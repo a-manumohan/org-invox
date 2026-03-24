@@ -1,9 +1,9 @@
 ;;; org-invox.el --- Invoice management for contractors using Org mode -*- lexical-binding: t -*-
 
-;; Copyright (C) 2026 Manu Narayanan
+;; Copyright (C) 2026 Manu Mohan
 
-;; Author: Manu Narayanan
-;; URL: https://github.com/manu-r-n/org-invox
+;; Author: Manu Mohan
+;; URL: https://github.com/a-manumohan/org-invox
 ;; Version: 0.1.0
 ;; Package-Requires: ((emacs "27.1") (org "9.0"))
 ;; Keywords: org, invoice, billing, contractor
@@ -145,7 +145,7 @@ Examples:
   "Path to a custom LaTeX template file.
 If nil, the built-in template is used."
   :type '(choice (const :tag "Built-in template" nil)
-                 (file :tag "Custom template file"))
+          (file :tag "Custom template file"))
   :group 'org-invox)
 
 (defcustom org-invox-date-format "%B %d, %Y"
@@ -192,6 +192,21 @@ If nil, the built-in template is used."
     (goto-char (point-min))
     (when (re-search-forward "^\\* Contract Details" nil t)
       (org-entry-get (point) property))))
+
+(defun org-invox--format-address-block (name company address email phone)
+  "Format NAME, COMPANY, ADDRESS, EMAIL, and PHONE into a readable address block."
+  (string-join
+   (cl-remove-if #'string-empty-p
+                 (list (or name "")
+                       (if (and company (not (string-empty-p company))
+                                (not (string= company name)))
+                           company "")
+                       (or address "")
+                       (if (and email (not (string-empty-p email)))
+                           (concat "Email: " email) "")
+                       (if (and phone (not (string-empty-p phone)))
+                           (concat "Phone: " phone) "")))
+   "\n"))
 
 (defun org-invox--next-invoice-number (index-file)
   "Get the next invoice number from INDEX-FILE and increment it."
@@ -251,7 +266,7 @@ If nil, the built-in template is used."
   (format-time-string org-invox-date-format time))
 
 (defun org-invox--add-to-index (index-file invoice-number invoice-file
-                                             period-start period-end total status)
+                                           period-start period-end total status)
   "Add an invoice entry to INDEX-FILE."
   (with-current-buffer (find-file-noselect index-file)
     (goto-char (point-min))
@@ -407,22 +422,26 @@ If nil, the built-in template is used."
 :END:
 
 ** From
-| Field   | Value                        |
-|---------+------------------------------|
-| Name    | %s |
-| Company | %s |
-| Address | %s |
-| Email   | %s |
-| Phone   | %s |
+:PROPERTIES:
+:FROM_NAME: %s
+:FROM_COMPANY: %s
+:FROM_EMAIL: %s
+:FROM_PHONE: %s
+:END:
+#+begin_example
+%s
+#+end_example
 
 ** To
-| Field   | Value                        |
-|---------+------------------------------|
-| Name    | %s |
-| Company | %s |
-| Address | %s |
-| Email   | %s |
-| Contact | %s |
+:PROPERTIES:
+:TO_NAME: %s
+:TO_COMPANY: %s
+:TO_EMAIL: %s
+:TO_CONTACT: %s
+:END:
+#+begin_example
+%s
+#+end_example
 
 ** Line Items
 | # | Description | Hours | Rate (%s) | Amount (%s) |
@@ -450,18 +469,30 @@ If nil, the built-in template is used."
                       period-start
                       period-end
                       payment-terms
-                      ;; From
+                      ;; From properties
                       org-invox-from-name
                       org-invox-from-company
-                      org-invox-from-address
                       org-invox-from-email
                       org-invox-from-phone
-                      ;; To
+                      ;; From address block
+                      (org-invox--format-address-block
+                       org-invox-from-name
+                       org-invox-from-company
+                       org-invox-from-address
+                       org-invox-from-email
+                       org-invox-from-phone)
+                      ;; To properties
                       contact-name
                       client-name
-                      client-address
                       client-email
                       contact-name
+                      ;; To address block
+                      (org-invox--format-address-block
+                       contact-name
+                       client-name
+                       client-address
+                       client-email
+                       nil)
                       ;; Line items
                       currency-sym currency-sym
                       service-desc hours rate subtotal
@@ -474,7 +505,7 @@ If nil, the built-in template is used."
                       payment-terms)))
     ;; Update the index
     (org-invox--add-to-index index-file invoice-number invoice-file
-                               period-start period-end total "Unpaid")
+                             period-start period-end total "Unpaid")
     ;; Open the invoice
     (find-file invoice-file)
     (message "Invoice %s created (Total: %s%.2f)" invoice-number currency-sym total)))
