@@ -25,24 +25,11 @@
 (require 'org-invox)
 
 (defun org-invox-export--read-field (field-name)
-  "Read FIELD-NAME value from the current invoice buffer's org tables."
+  "Read FIELD-NAME value from the current invoice buffer's file keywords."
   (save-excursion
     (goto-char (point-min))
     (when (re-search-forward (format "^#\\+%s: \\(.+\\)$" (upcase field-name)) nil t)
       (string-trim (match-string 1)))))
-
-(defun org-invox-export--read-table-field (heading field)
-  "Read FIELD value from the org table under HEADING."
-  (save-excursion
-    (goto-char (point-min))
-    (when (re-search-forward (format "^\\*\\* %s" heading) nil t)
-      (when (re-search-forward "^|" nil t)
-        (beginning-of-line)
-        (let ((table-begin (point)))
-          (forward-paragraph)
-          (let ((table-text (buffer-substring-no-properties table-begin (point))))
-            (when (string-match (format "| %s *| \\([^|]+\\)|" (regexp-quote field)) table-text)
-              (string-trim (match-string 1 table-text)))))))))
 
 (defun org-invox-export--parse-invoice ()
   "Parse the current invoice buffer into a property list."
