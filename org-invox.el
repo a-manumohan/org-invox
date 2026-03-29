@@ -146,7 +146,7 @@ Examples:
   "Path to a custom LaTeX template file.
 If nil, the built-in template is used."
   :type '(choice (const :tag "Built-in template" nil)
-          (file :tag "Custom template file"))
+                 (file :tag "Custom template file"))
   :group 'org-invox)
 
 (defcustom org-invox-date-format "%B %d, %Y"
@@ -268,7 +268,11 @@ If nil, the built-in template is used."
 
 (defun org-invox--add-to-index (index-file invoice-number invoice-file
                                            period-start period-end total status)
-  "Add an invoice entry to INDEX-FILE."
+  "Add an invoice entry for INVOICE-NUMBER to INDEX-FILE.
+INVOICE-FILE is the path to the invoice org file.
+PERIOD-START and PERIOD-END are the billing period dates.
+TOTAL is the invoice total amount.
+STATUS is the initial invoice status string."
   (with-current-buffer (find-file-noselect index-file)
     (goto-char (point-min))
     (unless (re-search-forward "^\\* Invoices" nil t)
@@ -292,7 +296,7 @@ If nil, the built-in template is used."
                     period-end
                     total
                     status
-                    (format-time-string "[%Y-%m-%d %a]")))
+                    (format-time-string "[%F %a]")))
     (save-buffer)))
 
 ;;; Interactive Commands
@@ -526,7 +530,7 @@ If nil, the built-in template is used."
     (goto-char (point-min))
     (when (re-search-forward "^\\* Invoice Details" nil t)
       (org-entry-put (point) "STATUS" "Paid")
-      (org-entry-put (point) "PAID_DATE" (format-time-string "[%Y-%m-%d %a]")))
+      (org-entry-put (point) "PAID_DATE" (format-time-string "[%F %a]")))
     (save-buffer))
   ;; Also update the index file if we can find it
   (let* ((invoice-file (buffer-file-name))
@@ -541,7 +545,7 @@ If nil, the built-in template is used."
         (goto-char (point-min))
         (when (re-search-forward (format "^\\*\\* %s" (regexp-quote invoice-number)) nil t)
           (org-entry-put (point) "STATUS" "Paid")
-          (org-entry-put (point) "PAID_DATE" (format-time-string "[%Y-%m-%d %a]")))
+          (org-entry-put (point) "PAID_DATE" (format-time-string "[%F %a]")))
         (save-buffer))))
   (message "Invoice marked as paid."))
 
@@ -571,11 +575,11 @@ If nil, the built-in template is used."
                 (goto-char (point-min))
                 (let ((inv-num (when (re-search-forward "^#\\+INVOICE_NUMBER: \\(.+\\)$" nil t)
                                  (match-string 1)))
-                      (inv-total (progn
-                                   (goto-char (point-min))
-                                   (when (re-search-forward "^#\\+DUE_DATE: \\(.+\\)$" nil t)
-                                     (match-string 1)))))
-                  (push (list (car contract) inv-num inv-total file) unpaid-list))))))))
+                      (inv-due (progn
+                                 (goto-char (point-min))
+                                 (when (re-search-forward "^#\\+DUE_DATE: \\(.+\\)$" nil t)
+                                   (match-string 1)))))
+                  (push (list (car contract) inv-num inv-due file) unpaid-list))))))))
     (if (null unpaid-list)
         (message "No unpaid invoices found.")
       (let ((buf (get-buffer-create "*Org Invoice - Unpaid*")))
