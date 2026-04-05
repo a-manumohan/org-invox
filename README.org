@@ -29,22 +29,28 @@ Track contracts, generate invoices, export professional PDFs — all without lea
 
 ** Installation
 
-*** From source (recommended for now)
+*** MELPA
 
-Clone the repository and add it to your load path:
+=org-invox= is available on [[https://melpa.org/#/org-invox][MELPA]]. Add MELPA to your package archives if you haven't already:
 
 #+begin_src emacs-lisp
-(add-to-list 'load-path "/path/to/org-invox")
-(require 'org-invox)
-(require 'org-invox-export)
+(require 'package)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+(package-initialize)
 #+end_src
+
+Then install:
+
+#+begin_example
+M-x package-install RET org-invox RET
+#+end_example
 
 *** Doom Emacs
 
 In =packages.el=:
 
 #+begin_src emacs-lisp
-(package! org-invox :recipe (:host github :repo "a-manumohan/org-invox"))
+(package! org-invox)
 #+end_src
 
 In =config.el=:
@@ -56,14 +62,24 @@ In =config.el=:
   (require 'org-invox-export))
 #+end_src
 
-*** use-package (vanilla Emacs with straight.el)
+*** use-package (vanilla Emacs)
 
 #+begin_src emacs-lisp
 (use-package org-invox
-  :straight (:host github :repo "a-manumohan/org-invox")
+  :ensure t
   :after org
   :config
   (require 'org-invox-export))
+#+end_src
+
+*** From source
+
+Clone the repository and add it to your load path:
+
+#+begin_src emacs-lisp
+(add-to-list 'load-path "/path/to/org-invox")
+(require 'org-invox)
+(require 'org-invox-export)
 #+end_src
 
 ** Quick Start
