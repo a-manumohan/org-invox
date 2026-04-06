@@ -2,8 +2,6 @@
 #+AUTHOR: Manu Mohan
 #+OPTIONS: toc:3 num:nil
 
-* org-invox
-
 [[https://melpa.org/#/org-invox][https://melpa.org/packages/org-invox-badge.svg]]
 
 A complete invoicing workflow for software contractors and freelancers using Emacs Org mode.
