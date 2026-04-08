@@ -299,6 +299,83 @@ STATUS is the initial invoice status string."
                     (format-time-string "[%F %a]")))
     (save-buffer)))
 
+(defun org-invox--collect-index-invoices (index-file)
+  "Return invoice plists from the Invoices section of INDEX-FILE.
+Each plist has :total (float), :status, and :date-created."
+  (with-temp-buffer
+    (insert-file-contents index-file)
+    (org-mode)
+    (let (invoices)
+      (goto-char (point-min))
+      (when (re-search-forward "^\\* Invoices" nil t)
+        (let ((bound (save-excursion
+                       (if (re-search-forward "^\\* " nil t)
+                           (line-beginning-position)
+                         (point-max)))))
+          (while (re-search-forward "^\\*\\* " bound t)
+            (let ((total (org-entry-get (point) "TOTAL"))
+                  (status (org-entry-get (point) "STATUS"))
+                  (date-created (org-entry-get (point) "DATE_CREATED")))
+              (when (and total status)
+                (push (list :total (string-to-number total)
+                            :status status
+                            :date-created (or date-created ""))
+                      invoices))))))
+      (nreverse invoices))))
+
+(defun org-invox--update-index-summary (index-file)
+  "Recompute and write the Financial Summary section in INDEX-FILE."
+  (let* ((invoices (org-invox--collect-index-invoices index-file))
+         (current-year (format-time-string "%Y"))
+         (sym (or (org-invox--read-contract-property index-file "CURRENCY_SYMBOL")
+                  org-invox-default-currency-symbol))
+         (fmt (lambda (n) (format "%s%.2f" sym n)))
+         (sum (lambda (lst) (apply #'+ (mapcar (lambda (i) (plist-get i :total)) lst))))
+         (paid   (cl-remove-if-not (lambda (i) (string= (plist-get i :status) "Paid")) invoices))
+         (unpaid (cl-remove-if     (lambda (i) (string= (plist-get i :status) "Paid")) invoices))
+         (ytd    (cl-remove-if-not
+                  (lambda (i)
+                    (string-match-p (concat "\\[" current-year)
+                                    (plist-get i :date-created)))
+                  invoices))
+         (ytd-paid   (cl-remove-if-not (lambda (i) (string= (plist-get i :status) "Paid")) ytd))
+         (ytd-unpaid (cl-remove-if     (lambda (i) (string= (plist-get i :status) "Paid")) ytd))
+         (summary
+          (format "* Financial Summary
+| Metric          | Amount                        |
+|-----------------+-------------------------------|
+| YTD Invoiced    | %s |
+| YTD Paid        | %s |
+| YTD Outstanding | %s |
+|-----------------+-------------------------------|
+| Total Invoiced  | %s |
+| Total Paid      | %s |
+| Outstanding     | %s |
+|-----------------+-------------------------------|
+| Invoices        | %d total (%d paid, %d unpaid) |
+"
+                  (funcall fmt (funcall sum ytd))
+                  (funcall fmt (funcall sum ytd-paid))
+                  (funcall fmt (funcall sum ytd-unpaid))
+                  (funcall fmt (funcall sum invoices))
+                  (funcall fmt (funcall sum paid))
+                  (funcall fmt (funcall sum unpaid))
+                  (length invoices) (length paid) (length unpaid))))
+    (with-current-buffer (find-file-noselect index-file)
+      (goto-char (point-min))
+      (if (re-search-forward "^\\* Financial Summary" nil t)
+          (let ((start (progn (beginning-of-line) (point))))
+            (forward-line 1)
+            (let ((end (if (re-search-forward "^\\* " nil t)
+                           (line-beginning-position)
+                         (point-max))))
+              (delete-region start end)
+              (insert summary)))
+        (goto-char (point-max))
+        (unless (bolp) (insert "\n"))
+        (insert summary))
+      (save-buffer))))
+
 ;;; Interactive Commands
 
 ;;;###autoload
@@ -511,6 +588,7 @@ STATUS is the initial invoice status string."
     ;; Update the index
     (org-invox--add-to-index index-file invoice-number invoice-file
                              period-start period-end total "Unpaid")
+    (org-invox--update-index-summary index-file)
     ;; Open the invoice
     (find-file invoice-file)
     (message "Invoice %s created (Total: %s%.2f)" invoice-number currency-sym total)))
@@ -547,6 +625,8 @@ STATUS is the initial invoice status string."
           (org-entry-put (point) "STATUS" "Paid")
           (org-entry-put (point) "PAID_DATE" (format-time-string "[%F %a]")))
         (save-buffer))))
+  (when (file-exists-p index-file)
+    (org-invox--update-index-summary index-file))
   (message "Invoice marked as paid."))
 
 ;;;###autoload
@@ -594,6 +674,15 @@ STATUS is the initial invoice status string."
           (goto-char (point-min))
           (read-only-mode 1))
         (display-buffer buf)))))
+
+;;;###autoload
+(defun org-invox-update-summary ()
+  "Refresh the Financial Summary section in a contract's index file."
+  (interactive)
+  (let* ((contract (org-invox--select-contract))
+         (index-file (org-invox--index-file (cdr contract))))
+    (org-invox--update-index-summary index-file)
+    (message "Financial summary updated.")))
 
 (provide 'org-invox)
 ;;; org-invox.el ends here
