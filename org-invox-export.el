@@ -357,23 +357,26 @@
                      (org-invox-export--default-template)))
          (filled (org-invox-export--fill-template template props))
          (org-file (buffer-file-name))
-         (base-name (file-name-sans-extension org-file))
-         (tex-file (concat base-name ".tex"))
-         (pdf-file (concat base-name ".pdf"))
-         (default-directory (file-name-directory org-file)))
+         (invoice-name (file-name-sans-extension (file-name-nondirectory org-file)))
+         (exports-dir (expand-file-name "exports" (file-name-directory org-file)))
+         (tex-file (expand-file-name (concat invoice-name ".tex") exports-dir))
+         (pdf-file (expand-file-name (concat invoice-name ".pdf") exports-dir)))
+    ;; Ensure exports directory exists
+    (unless (file-directory-p exports-dir)
+      (make-directory exports-dir t))
     ;; Write .tex file
     (with-temp-file tex-file
       (insert filled))
     ;; Compile with pdflatex (run twice for references)
     (let ((compile-cmd (format "pdflatex -interaction=nonstopmode -output-directory=%s %s"
-                               (shell-quote-argument (file-name-directory tex-file))
+                               (shell-quote-argument exports-dir)
                                (shell-quote-argument tex-file))))
       (message "Compiling invoice PDF...")
       (shell-command compile-cmd)
       (shell-command compile-cmd))  ; Second pass for lastpage
-    ;; Clean up auxiliary files
-    (dolist (ext '(".aux" ".log" ".out"))
-      (let ((f (concat base-name ext)))
+    ;; Clean up auxiliary files including .tex (build artifact)
+    (dolist (ext '(".tex" ".aux" ".log" ".out"))
+      (let ((f (expand-file-name (concat invoice-name ext) exports-dir)))
         (when (file-exists-p f)
           (delete-file f))))
     (if (file-exists-p pdf-file)
