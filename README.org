@@ -19,6 +19,7 @@ Track contracts, generate invoices, export professional PDFs — all without lea
 - *PDF export via LaTeX* — clean, professional template (customizable)
 - *Plain Org records* — every invoice is a readable =.org= file
 - *Unpaid invoice tracking* — list all outstanding invoices across contracts
+- *Financial summary* — per-contract YTD and all-time totals (invoiced, paid, outstanding) auto-updated in the contract index
 - *Works everywhere* — vanilla Emacs, Doom Emacs, Spacemacs
 
 ** Requirements
@@ -131,20 +132,25 @@ Select a contract, enter hours and period dates. org-invox handles everything el
 └── acme-corp/
     ├── index.org
     ├── INV-2026-0001.org  ← invoice files
-    └── INV-2026-0002.org
+    ├── INV-2026-0002.org
+    └── exports/           ← generated PDFs
+        ├── INV-2026-0001.pdf
+        └── INV-2026-0002.pdf
 #+end_example
 
 *** 4. Export to PDF
 
 =M-x org-invox-export-pdf=
 
-Generates a professional PDF via LaTeX, right next to the =.org= file.
+Generates a professional PDF via LaTeX into the =exports/= subdirectory of the contract directory. Build artifacts (=.aux=, =.log=, =.out=, =.tex=) are cleaned up automatically.
 
 *** 5. Track payments
 
 =M-x org-invox-mark-paid= — marks the current invoice as paid (updates both the invoice and the contract index).
 
 =M-x org-invox-list-unpaid= — shows all unpaid invoices across all contracts.
+
+=M-x org-invox-update-summary= — manually refreshes the =* Financial Summary= table in the contract index with current YTD and all-time totals (invoiced, paid, outstanding). This table is also updated automatically on invoice creation and =org-invox-mark-paid=.
 
 ** Configuration Reference
 
@@ -206,9 +212,10 @@ The following placeholders are available:
 
 1. *Once per client:* =M-x org-invox-new-contract= — set up client details, rate, tax
 2. *Every 2 weeks:* =M-x org-invox-create= — enter hours and period → invoice is generated
-3. *Immediately after:* =M-x org-invox-export-pdf= — generate PDF to send
-4. *When paid:* =M-x org-invox-mark-paid= — update status
+3. *Immediately after:* =M-x org-invox-export-pdf= — generate PDF in =exports/= to send
+4. *When paid:* =M-x org-invox-mark-paid= — update status (summary auto-updates)
 5. *Periodically:* =M-x org-invox-list-unpaid= — check outstanding invoices
+6. *On demand:* =M-x org-invox-update-summary= — refresh financial totals in the contract index
 
 ** License
 
