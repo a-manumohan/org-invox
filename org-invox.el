@@ -99,6 +99,12 @@ Use \\n for line breaks."
   :type 'string
   :group 'org-invox)
 
+(defcustom org-invox-from-tax-number ""
+  "Your tax registration number (e.g., HST/GST/VAT number).
+Optional. When set, appears in the From section and alongside the tax rate on invoices."
+  :type 'string
+  :group 'org-invox)
+
 ;;; Invoice Defaults
 
 (defcustom org-invox-root-directory "~/invoices"
@@ -195,13 +201,15 @@ If nil, the built-in template is used."
       (org-entry-get (point) property))))
 
 (defun org-invox--format-address-block (name company address email phone)
-  "Format NAME, COMPANY, ADDRESS, EMAIL, and PHONE into a readable address block."
+  "Format NAME, COMPANY, ADDRESS, EMAIL, and PHONE into an address block.
+COMPANY is listed first; NAME appears on the next line when both are set and differ."
   (string-join
    (cl-remove-if #'string-empty-p
-                 (list (or name "")
-                       (if (and company (not (string-empty-p company))
-                                (not (string= company name)))
-                           company "")
+                 (list (or company "")
+                       (if (and name (not (string-empty-p name))
+                                (or (string-empty-p (or company ""))
+                                    (not (string= name company))))
+                           name "")
                        (or address "")
                        (if (and email (not (string-empty-p email)))
                            (concat "Email: " email) "")
@@ -470,6 +478,9 @@ Each plist has :total (float), :status, and :date-created."
          (subtotal (plist-get totals :subtotal))
          (tax (plist-get totals :tax))
          (total (plist-get totals :total))
+         (tax-label-display (if (string-empty-p org-invox-from-tax-number)
+                                tax-label
+                              (concat tax-label " #" org-invox-from-tax-number)))
          ;; Invoice number and file
          (invoice-number (org-invox--next-invoice-number index-file))
          (invoice-file (expand-file-name
@@ -509,6 +520,7 @@ Each plist has :total (float), :status, and :date-created."
 :FROM_COMPANY: %s
 :FROM_EMAIL: %s
 :FROM_PHONE: %s
+:FROM_TAX_NUMBER: %s
 :END:
 #+begin_example
 %s
@@ -556,6 +568,7 @@ Each plist has :total (float), :status, and :date-created."
                       org-invox-from-company
                       org-invox-from-email
                       org-invox-from-phone
+                      org-invox-from-tax-number
                       ;; From address block
                       (org-invox--format-address-block
                        org-invox-from-name
@@ -579,7 +592,7 @@ Each plist has :total (float), :status, and :date-created."
                       currency-sym currency-sym
                       service-desc hours rate subtotal
                       subtotal
-                      tax-label (format "%.1f" tax-rate) tax
+                      tax-label-display (format "%.1f" tax-rate) tax
                       currency total
                       ;; Period
                       period-start period-end

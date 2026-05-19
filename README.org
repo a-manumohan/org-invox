@@ -14,7 +14,7 @@ Track contracts, generate invoices, export professional PDFs — all without lea
 
 - *Contract-based management* — one directory per client with a master index
 - *Auto-incrementing invoice numbers* — configurable format (e.g., =INV-2026-0001=)
-- *Configurable tax* — HST, GST, VAT, or any tax label/rate per contract
+- *Configurable tax* — HST, GST, VAT, or any tax label/rate per contract; optional tax registration number shown on the tax line
 - *Configurable payment terms* — Net 15, Net 30, Due on Receipt, or custom
 - *PDF export via LaTeX* — clean, professional template (customizable)
 - *Plain Org records* — every invoice is a readable =.org= file
@@ -93,6 +93,7 @@ Clone the repository and add it to your load path:
       org-invox-from-address "123 Main St, Toronto, ON M5V 1A1"
       org-invox-from-email "jane@smithconsulting.ca"
       org-invox-from-phone "+1 (416) 555-0123"
+      org-invox-from-tax-number "123456789RT0001"   ; optional — leave "" to omit
       org-invox-root-directory "~/invoices")
 #+end_src
 
@@ -156,11 +157,12 @@ Generates a professional PDF via LaTeX into the =exports/= subdirectory of the c
 
 | Variable                            | Default                        | Description                              |
 |-------------------------------------+--------------------------------+------------------------------------------|
-| =org-invox-from-name=            | =""=                           | Your name                                |
-| =org-invox-from-company=         | =""=                           | Your company name                        |
+| =org-invox-from-name=            | =""=                           | Your name (shown below company name)     |
+| =org-invox-from-company=         | =""=                           | Your company/business name               |
 | =org-invox-from-address=         | =""=                           | Your address                             |
 | =org-invox-from-email=           | =""=                           | Your email                               |
 | =org-invox-from-phone=           | =""=                           | Your phone                               |
+| =org-invox-from-tax-number=      | =""=                           | Tax registration number (optional); shown on the tax line as =HST #<number> (13%)= |
 | =org-invox-root-directory=       | ="~/invoices"=                 | Where contracts/invoices are stored       |
 | =org-invox-default-tax-rate=     | =13.0=                         | Default tax percentage                   |
 | =org-invox-default-tax-label=    | ="HST"=                        | Default tax name                         |
@@ -200,7 +202,7 @@ The following placeholders are available:
 | =<<TO_BLOCK>>=       | Full recipient block (name, company, address, etc.)|
 | =<<LINE_ITEMS>>=     | Formatted line items                               |
 | =<<SUBTOTAL>>=       | Subtotal amount                                    |
-| =<<TAX_LABEL>>=      | Tax label (e.g., HST)                              |
+| =<<TAX_LABEL>>=      | Tax label, including registration number if set (e.g., =HST #123456789RT0001=) |
 | =<<TAX_RATE>>=       | Tax rate (e.g., 13.0)                              |
 | =<<TAX_AMOUNT>>=     | Tax amount                                         |
 | =<<TOTAL>>=          | Total amount                                       |

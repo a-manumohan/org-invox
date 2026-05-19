@@ -53,7 +53,8 @@
         (dolist (pair '(("FROM_NAME" . :from-name)
                         ("FROM_COMPANY" . :from-company)
                         ("FROM_EMAIL" . :from-email)
-                        ("FROM_PHONE" . :from-phone)))
+                        ("FROM_PHONE" . :from-phone)
+                        ("FROM_TAX_NUMBER" . :from-tax-number)))
           (let ((val (org-entry-get (point) (car pair))))
             (when val (setq props (plist-put props (cdr pair) val)))))
         ;; Read address from example block
@@ -115,8 +116,8 @@
                 (cond
                  ((string-match "Subtotal.*| *\\*?\\([0-9.]+\\)\\*? *|" line)
                   (setq props (plist-put props :subtotal (match-string 1 line))))
-                 ((string-match "\\(HST\\|GST\\|VAT\\|Tax\\|[A-Z]+\\) *(\\([0-9.]+\\)%).*| *\\*?\\([0-9.]+\\)\\*? *|" line)
-                  (setq props (plist-put props :tax-label (match-string 1 line)))
+                 ((string-match "\\*\\([^(*]+?\\) *(\\([0-9.]+\\)%)\\*.*| *\\*?\\([0-9.]+\\)\\*? *|" line)
+                  (setq props (plist-put props :tax-label (string-trim (match-string 1 line))))
                   (setq props (plist-put props :tax-rate (match-string 2 line)))
                   (setq props (plist-put props :tax-amount (match-string 3 line))))
                  ((string-match "TOTAL.*| *\\*?\\([0-9.]+\\)\\*? *|" line)
