@@ -486,9 +486,10 @@ Each plist has :total (float), :status, and :date-created."
          (invoice-file (expand-file-name
                         (concat invoice-number ".org")
                         (org-invox--contract-dir slug)))
-         (invoice-date (org-invox--format-date (current-time)))
+         (invoice-date-time (org-read-date t t nil "Invoice date: "))
+         (invoice-date (org-invox--format-date invoice-date-time))
          (due-date (org-invox--format-date
-                    (time-add (current-time)
+                    (time-add invoice-date-time
                               (days-to-time
                                (cond
                                 ((string-match "Net \\([0-9]+\\)" payment-terms)
